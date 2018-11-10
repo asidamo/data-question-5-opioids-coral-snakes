@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1541733147054.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "1E68F17F",
+    "lastKnownWriteTime" : 4394582784,
+    "last_content_update" : 1541733147054,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "7051A2D2",
+        "caption" : "prescriber",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=prescriber&cache_key=7051A2D2",
+        "displayedObservations" : 3672000,
+        "environment" : "",
+        "object" : "prescriber",
+        "preview" : 0,
+        "totalObservations" : 3672000,
+        "variables" : 8
+    },
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
