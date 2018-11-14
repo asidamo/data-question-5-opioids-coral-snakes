@@ -1,7 +1,7 @@
 
 rm(list=ls())
 memory.size(max=F)
-setwd("C:\\Users\\fevty\\Desktop\\NSS\\DQ5")
+setwd("C:\\Users\\fevty\\Desktop\\NSS\\data-question-5-opioids-coral-snakes")
 library(tidyverse)
 
 # questions
@@ -48,13 +48,26 @@ overdose_df_SORTED<-overdose_df[order(overdose_df$Deaths,decreasing=TRUE),]
 head(overdose_df_SORTED,5)
 
 # bar plot number of overdoses related deaths by states
-deaths_by_state<-ggplot(data=overdose_df_SORTED, aes(x=State, y=Deaths)) +
+deaths_by_state<-ggplot(data=overdose_df_SORTED, aes(x=State, y=Deaths,fill='red')) +
   geom_bar(stat="identity")
 # to plot the bar plot horizontally  coord_flip to plot verticall bars just run deaths_by_state
 deaths_by_state + coord_flip()
 
 # map showing increase in overdose related deaths by States
 # https://www.cdc.gov/drugoverdose/data/prescribing.html
+# https://www.cdc.gov/media/releases/2018/p0329-drug-overdose-deaths.html 
+
+# data for diabetic diseases by states
+# https://gis.cdc.gov/grasp/diabetes/DiabetesAtlas.html
+
+diabetes<- read_csv('DiabetesAtlasData.csv',skip =2)
+
+str(diabetes)
+diabetes_by_state<-ggplot(data=diabetes, aes(x=State, y=Percentage,fill='red')) + geom_bar(stat="identity")
+
+diabetes_by_state + coord_flip()
+
+tail(diabetes)
 
 
 #  read prescribers informations
@@ -67,6 +80,15 @@ head(prescribers,5)
 
 rx_per_prescriber <- gather(prescribers, rx, countrx, ABILIFY:ZOLPIDEM.TARTRATE)
 head(rx_per_prescriber,5)
+
+
+matches <- c("ACETAMINOPHEN.CODEINE", "FENTANYL", "HYDROMORPHONE.HCL", "METHADONE.HCL", "MORPHINE.SULFATE", "MORPHINE.SULFATE.ER", "OXYCODONE.HCL", "OXYCODONE.ACETAMINOPHEN",
+             "OXYCONTIN", "TRAMADOL.HCL")
+
+opioids_prescribed <- rx_per_prescriber$rx %in% matches
+rx_opioids <- rx_per_prescriber[opioids_prescribed == TRUE,]
+
+str(rx_opioids)
 
 # select records qualified to make 10 prescriptions with dummy variable==1 and
 # not qualified to makes 10 prescriptions 
@@ -91,5 +113,14 @@ tail(non_frequent_prescribers)
 # vector for opioids drug names
 opioids_drugs<-opioids_df$`Generic Name`
 
+opioids_list<-unique(opioids_drugs)
+opioids_list_unq<-list(opioids_list)
+
+prescribers_list<-unique(rx_per_prescriber$rx)
+prescribers_list_unq<-list(prescribers_list)
+
+
+write.csv(opioids_list_unq,"opioids_list.csv")
+write.csv(prescribers_list_unq,"prescribers_list.csv")
 
 
