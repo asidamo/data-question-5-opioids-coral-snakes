@@ -88,20 +88,68 @@ matches <- c("ACETAMINOPHEN.CODEINE", "FENTANYL", "HYDROMORPHONE.HCL", "METHADON
 opioids_prescribed <- rx_per_prescriber$rx %in% matches
 rx_opioids <- rx_per_prescriber[opioids_prescribed == TRUE,]
 
-str(rx_opioids)
+head(rx_opioids)
+
+# question # 2 test pareto effect (20% of top prescribers are prescribing 80% of prescriptions)
+
+# let's sort rx_opiodis dataset by countrx (count of presscriptions)
+rx_opioids<-rx_opioids[order(rx_opioids$countrx,decreasing=TRUE),]
+head(rx_opioids)
+
+# let's find total opiodis prescription in by using 
+tot_prescription<-sum(rx_opioids$countrx,na.rm = TRUE)
+
+print(tot_prescription)
+# calculate opioids precentage per drug per NPI 
+rx_opioids$pct_prescribed<- (rx_opioids$countrx/tot_prescription)*100
+
+head(rx_opioids)
+
+# take only NPI, countrx and pct_prescribed columns
+
+rx_opioids_per_NPI<-data.frame(rx_opioids$NPI,rx_opioids$countrx,rx_opioids$pct_prescribed)
+
+head(rx_opioids_per_NPI)
+
+# group by NPI 
+prescription_per_NPI<-rx_opioids_per_NPI%>% 
+  group_by(rx_opioids.NPI)%>%
+summarise(rx_opioids.countrx=sum(rx_opioids.countrx),rx_opioids.pct_prescribed=sum(rx_opioids.pct_prescribed))
+
+head(prescription_per_NPI)
+
+
+sum(prescription_per_NPI$pct_prescribed)
+# rename the columns as "NPI","countrx","pct_prescribed"
+
+colnames(prescription_per_NPI)<-c("NPI","countrx","pct_prescribed")
+
+# sort by descending order by percentage of opioids prescribed per NPI
+
+prescription_per_NPI<-prescription_per_NPI[order(prescription_per_NPI$pct_prescribed,decreasing=TRUE),]
+
+# create cummulative sum of percentages prescribed by prescribers
+head(prescription_per_NPI)
+prescription_per_NPI<-prescription_per_NPI%>%
+  mutate(cummulative_pct=cumsum(pct_prescribed))
+
+head(prescription_per_NPI)
+
+
+# let us take commulative of the percentages prescribed for NPIs
 
 # select records qualified to make 10 prescriptions with dummy variable==1 and
 # not qualified to makes 10 prescriptions 
 
-frequent_prescribers<-rx_per_prescriber %>%
-                          filter(Opioid.Prescriber==1)
+# frequent_prescribers<-rx_per_prescriber %>%
+ #                         filter(Opioid.Prescriber==1)
 
-non_frequent_prescribers<-rx_per_prescriber %>%
-    filter(Opioid.Prescriber==0)
+#non_frequent_prescribers<-rx_per_prescriber %>%
+#    filter(Opioid.Prescriber==0)
 
-head(frequent_prescribers)
+#head(frequent_prescribers)
 
-tail(non_frequent_prescribers)
+#tail(non_frequent_prescribers)
 
 
 # group by states the number of opioids prescribers
@@ -111,16 +159,16 @@ tail(non_frequent_prescribers)
 #match(opioids_drugs, frequent_prescribers, nomatch = NA_integer_, incomparables = NULL)
 
 # vector for opioids drug names
-opioids_drugs<-opioids_df$`Generic Name`
+#opioids_drugs<-opioids_df$`Generic Name`
 
-opioids_list<-unique(opioids_drugs)
-opioids_list_unq<-list(opioids_list)
+#opioids_list<-unique(opioids_drugs)
+#opioids_list_unq<-list(opioids_list)
 
-prescribers_list<-unique(rx_per_prescriber$rx)
-prescribers_list_unq<-list(prescribers_list)
+#prescribers_list<-unique(rx_per_prescriber$rx)
+#prescribers_list_unq<-list(prescribers_list)
 
 
-write.csv(opioids_list_unq,"opioids_list.csv")
-write.csv(prescribers_list_unq,"prescribers_list.csv")
+#write.csv(opioids_list_unq,"opioids_list.csv")
+#write.csv(prescribers_list_unq,"prescribers_list.csv")
 
 
