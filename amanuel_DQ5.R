@@ -12,7 +12,7 @@ library(tidyverse)
 # 2. states with highest number of overdoses and opioids prescribers
 # 3. plot box, historgrams or any appropriate plot
 # 4. pareto effect of opiodis
-# 5. build model to to predict number of opiodis fuetal death
+# 5. build model to to predict number of opiodis fatal death
 # 6. find other data that may affect health outcomes
 # 7. variability in numberof opiodis and mean , median
 # prescribers data
@@ -27,12 +27,6 @@ tail(opioids_df)
 overdose_df<-read_csv('overdoses.csv')
 head(overdose_df,10)
 
-
-filter(overdose_df,Deaths>2000)
-
-overdose_df %>%
-  filter(State=="Tennessee")%>%
-  View()
 
 
 # Explore overdoses datasets
@@ -89,8 +83,12 @@ opioids_prescribed <- rx_per_prescriber$rx %in% matches
 rx_opioids <- rx_per_prescriber[opioids_prescribed == TRUE,]
 
 head(rx_opioids)
+# keep only qualified prescribers and countrx column not missing
 
-# question # 2 test pareto effect (20% of top prescribers are prescribing 80% of prescriptions)
+rx_opioids<- filter(rx_opioids,Opioid.Prescriber==1,countrx!='na')
+head(rx_opioids)
+rx_opioids$NPI
+  # question # 2 test pareto effect (20% of top prescribers are prescribing 80% of prescriptions)
 
 # let's sort rx_opiodis dataset by countrx (count of presscriptions)
 rx_opioids<-rx_opioids[order(rx_opioids$countrx,decreasing=TRUE),]
@@ -111,18 +109,23 @@ rx_opioids_per_NPI<-data.frame(rx_opioids$NPI,rx_opioids$countrx,rx_opioids$pct_
 
 head(rx_opioids_per_NPI)
 
+# rename the columns as "NPI","countrx","pct_prescribed"
+colnames(rx_opioids_per_NPI)<-c("NPI","countrx","pct_prescribed")
+
+# uncomment the next line to compute for actual prescribers only.
+#rx_opioids_per_NPI<-  filter(rx_opioids_per_NPI,countrx!=0)
+
+
 # group by NPI 
 prescription_per_NPI<-rx_opioids_per_NPI%>% 
-  group_by(rx_opioids.NPI)%>%
-summarise(rx_opioids.countrx=sum(rx_opioids.countrx),rx_opioids.pct_prescribed=sum(rx_opioids.pct_prescribed))
+group_by(NPI)%>%
+summarise(countrx=sum(countrx),pct_prescribed=sum(pct_prescribed))
 
 head(prescription_per_NPI)
 
 
 sum(prescription_per_NPI$pct_prescribed)
-# rename the columns as "NPI","countrx","pct_prescribed"
 
-colnames(prescription_per_NPI)<-c("NPI","countrx","pct_prescribed")
 
 # sort by descending order by percentage of opioids prescribed per NPI
 
@@ -134,41 +137,33 @@ prescription_per_NPI<-prescription_per_NPI%>%
   mutate(cummulative_pct=cumsum(pct_prescribed))
 
 head(prescription_per_NPI)
+# select 80% of prescriptions
+prescription_80_pct<-prescription_per_NPI[prescription_per_NPI$cummulative_pct<=80,]
 
+# calculate count of top 80 percent prescribers
+count_top_80_pct<-nrow(prescription_80_pct)
+count_top_80_pct
 
-# let us take commulative of the percentages prescribed for NPIs
+# calculate count of bottom 20 percent prescribers
+bottom_20_pct<-prescription_per_NPI[prescription_per_NPI$cummulative_pct>80,]
+count_bottom_20_pct<-nrow(bottom_20_pct)
+count_bottom_20_pct
 
-# select records qualified to make 10 prescriptions with dummy variable==1 and
-# not qualified to makes 10 prescriptions 
+pareto_effect<-count_top_80_pct*100/(count_bottom_20_pct+count_top_80_pct)
 
-# frequent_prescribers<-rx_per_prescriber %>%
- #                         filter(Opioid.Prescriber==1)
+# Only 20.26% of the qualified prescribers have prescribed 80% of Opioids prescriptions
+# when only actuall prescribers are considered 30.75% of prescribers prescribed 80% of the Opioids
+pareto_effect
 
-#non_frequent_prescribers<-rx_per_prescriber %>%
-#    filter(Opioid.Prescriber==0)
+# plot histogram 
+ggplot(
+  data = prescription_per_NPI,
+  aes(x = cummulative_pct,fill='orange2')
+) +
+  geom_histogram(binwidth =20)
 
-#head(frequent_prescribers)
+#prescription_per_NPI<-prescription_per_NPI %>%
+ # mutate(cum_cdf=ecdf(pct_prescribed))
 
-#tail(non_frequent_prescribers)
-
-
-# group by states the number of opioids prescribers
-
-
-
-#match(opioids_drugs, frequent_prescribers, nomatch = NA_integer_, incomparables = NULL)
-
-# vector for opioids drug names
-#opioids_drugs<-opioids_df$`Generic Name`
-
-#opioids_list<-unique(opioids_drugs)
-#opioids_list_unq<-list(opioids_list)
-
-#prescribers_list<-unique(rx_per_prescriber$rx)
-#prescribers_list_unq<-list(prescribers_list)
-
-
-#write.csv(opioids_list_unq,"opioids_list.csv")
-#write.csv(prescribers_list_unq,"prescribers_list.csv")
-
-
+head(prescription_per_NPI)
+plot(prescription_per_NPI$cummulative_pct, xlab = 'count_of_prescriptions', ylab = 'cummulative_percent', main = 'Empirical Cumluative Distribution\nOpioids Prescriptions')
