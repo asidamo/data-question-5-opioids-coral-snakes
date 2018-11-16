@@ -12,17 +12,10 @@ opioids <- read_csv('~/Desktop/DQ5/data-question-5-opioids-coral-snakes/opioids.
 
 rx_per_prescriber <- gather(prescribers, rx, countrx, ABILIFY:ZOLPIDEM.TARTRATE)
 
-rx_TX <- rx_per_prescriber %>% 
-        filter(State == 'TX')
-head(rx_TX)
-
-
 prescriber <- rx_per_prescriber %>% 
               filter(Opioid.Prescriber == 1)
 non_prescriber <- rx_per_prescriber %>% 
               filter(Opioid.Prescriber == 0)
-
-unique(prescriber$State)
 
 drops <- c("PR", "ZZ", "AA", "AE", "GU", "VI", "DC")
 
@@ -93,14 +86,11 @@ non_op_match <- non_prescriber[non_op_match == TRUE, ]
 
 head(non_op_match)
 
-
 summary(op_match)
 
 summary(non_op_match)
 
-
 op_match_by_state <- aggregate(data.frame(count = op_match$State), list(value = op_match$State), length)
-
 
 aggregate(data.frame(count = op_match$rx), list(value = op_match$rx), length)
 
@@ -117,8 +107,6 @@ str(op_match_by_state)
 count_by_state <- op_match_by_state %>% 
   group_by(value) %>% 
   summarise(total = sum(count))
-
-op_match
 
 str(op_match)
 
@@ -159,7 +147,6 @@ non_op_match_nonull <- non_prescriber_no_null[non_op_match_nonull == TRUE, ]
 op_match_nonull
 
 non_op_match_nonull
-2129027/33686
 
 NPI_count <- op_match_nonull %>% 
   count(op_match_nonull$NPI)
@@ -170,47 +157,57 @@ sum(op_match_nonull$countrx) / nrow(NPI_count)
 
 head(overdoses)
 
-
-overdoses %>% 
-  rename(overdoses.State = overdoses.Abbrev)
-
-ggplot(overdoses, aes(overdoses.Abbrev)) + geom_histogram()
-
-death_ratio <- as.data.frame(overdoses$Population / overdoses$Deaths)
-
-death_ratio
+overdoses = mutate(overdoses, Ratio = Deaths/Population)
 
 count_of_opioids <- op_match_nonull %>% 
   group_by(rx) %>% 
   summarise(total = sum(countrx))
 
+op_count_by_state <- op_match_nonull %>% 
+  group_by(State, rx) %>% 
+  summarise(total = sum(countrx))
+
+op_count_by_state = mutate(op_count_by_state, Ratio = total/sum(total))
+
+ggplot(op_count_by_state, aes(State)) + geom_bar(aes(fill = rx), position = position_stack(reverse = FALSE)) + coord_flip()
+
+op_count_TX <- op_count_by_state %>% 
+  filter(State == 'TX')
+
+op_count_NH <- op_count_by_state %>% 
+  filter(State == 'NH')
+
+op_count_MT <- op_count_by_state %>% 
+  filter(State == 'MT')
+
+op_count_RI <- op_count_by_state %>% 
+  filter(State == 'RI')
+
+op_count_WV <- op_count_by_state %>% 
+  filter(State == 'WV')
+
+op_count_WV = mutate(op_count_WV, Ratio = total / sum(total))
+
+op_count_NM <- op_count_by_state %>% 
+  filter(State == 'NM')
+
+op_count_KY <- op_count_by_state %>% 
+  filter(State == 'KY')
+
+ggplot(op_count_TX, aes(x = reorder(rx, total), y = total)) + geom_col() + labs(x = "Drug Names", y = "Total Prescriptions") + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ggtitle('Texas Prescription Count')
+
+ggplot(op_count_NH, aes(x = reorder(rx, total), y = total)) + geom_col() + labs(x = "Drug Names", y = "Total Prescriptions") + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ggtitle('New Hampshire Prescription Count')
+
+ggplot(op_count_MT, aes(x = reorder(rx, total), y = total)) + geom_col() + labs(x = "Drug Names", y = "Total Prescriptions") + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ggtitle('Montana Prescription Count')
+
+ggplot(op_count_RI, aes(x = reorder(rx, total), y = total)) + geom_col() + labs(x = "Drug Names", y = "Total Prescriptions") + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ggtitle('Rhode Island Prescription Count')
+
+ggplot(op_count_WV, aes(x = reorder(rx, total), y = total)) + geom_col() + labs(x = "Drug Names", y = "Total Prescriptions") + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ggtitle('West Virginia Prescription Count')
+
+ggplot(op_count_NM, aes(x = reorder(rx, total), y = total)) + geom_col() + labs(x = "Drug Names", y = "Total Prescriptions") + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ggtitle('New Mexico Prescription Count')
+
+ggplot(op_count_KY, aes(x = reorder(rx, total), y = total)) + geom_col() + labs(x = "Drug Names", y = "Total Prescriptions") + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ggtitle('Kentucky Prescription Count')
+
 as.data.frame(count_of_opioids)
 
 ggplot(count_of_opioids, aes(x = reorder(rx, total), y = total)) + geom_col()
-
-
-#ggplot(prescriber_no_null, aes(countrx, colour = State)) + 
-#  geom_histogram()
-
-#plot(prescriber_no_null)
-
-#op_match <- prescriber_no_null$rx %in% matches
-
-#head(op_match)
-
-
-#zero_value <- prescriber$countrx == 0
-
-#zero_value
-
-#prescriber <- prescriber[zero_value == FALSE, ]
-
-#str(prescriber)
-
-#head(prescriber)
-
-#op_match_by_count <- op_match_by_state$count
-
-#op_match_by_value <- op_match_by_state$value
-
-#plot(op_match_by_state, x = op_match_by_count, y = op_match_by_value)
