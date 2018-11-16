@@ -3,6 +3,12 @@ rm(list=ls())
 memory.size(max=F)
 setwd("C:\\Users\\fevty\\Desktop\\NSS\\data-question-5-opioids-coral-snakes")
 library(tidyverse)
+library(ggplot2)
+library(tidyr)
+library(magrittr)
+library(dplyr)
+library(gdata)
+
 
 # questions
 # opiodis data 
@@ -51,22 +57,12 @@ deaths_by_state + coord_flip()
 # https://www.cdc.gov/drugoverdose/data/prescribing.html
 # https://www.cdc.gov/media/releases/2018/p0329-drug-overdose-deaths.html 
 
-# data for diabetic diseases by states
-# https://gis.cdc.gov/grasp/diabetes/DiabetesAtlas.html
-
-diabetes<- read_csv('DiabetesAtlasData.csv',skip =2)
-
-str(diabetes)
-diabetes_by_state<-ggplot(data=diabetes, aes(x=State, y=Percentage,fill='red')) + geom_bar(stat="identity")
-
-diabetes_by_state + coord_flip()
-
-tail(diabetes)
 
 
 #  read prescribers informations
 
 prescribers<-read_csv('prescriber-info.csv')
+
 
 head(prescribers,5)
 
@@ -167,3 +163,35 @@ ggplot(
 
 head(prescription_per_NPI)
 plot(prescription_per_NPI$cummulative_pct, xlab = 'count_of_prescriptions', ylab = 'cummulative_percent', main = 'Empirical Cumluative Distribution\nOpioids Prescriptions')
+
+
+
+# Question # 3 module for prescription practices 
+
+# data for diabetic diseases by states
+# https://gis.cdc.gov/grasp/diabetes/DiabetesAtlas.html
+
+diabetes<- read_csv('DiabetesAtlasData.csv',skip =2)
+
+str(diabetes)
+diabetes_by_state<-ggplot(data=diabetes, aes(x=State, y=Percentage,fill='red')) + geom_bar(stat="identity")
+
+diabetes_by_state + coord_flip()
+
+tail(diabetes)
+
+# https://factfinder.census.gov/faces/tableservices/jsf/pages/productview.xhtml?src=bkmk 
+race<-read.csv('PEP_2014_PEPSR6H_with_ann.csv')
+
+tail(race,15)
+
+# https://www.census.gov/library/publications/2015/demo/p60-253.html 
+
+insurance<-read.csv('hic04_acs.xls')
+
+
+# https://www.kff.org/other/state-indicator/health-spending-per-capita/?currentTimeframe=0&selectedRows=%7B%22states%22:%7B%22all%22:%7B%7D%7D,%22wrapups%22:%7B%22united-states%22:%7B%7D%7D%7D&sortModel=%7B%22colId%22:%22Location%22,%22sort%22:%22asc%22%7D
+
+percapita_HE<-read_csv('hic04_acs.csv')
+
+head(percapita_HE)
