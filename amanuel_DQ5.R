@@ -7,7 +7,8 @@ library(ggplot2)
 library(tidyr)
 library(magrittr)
 library(dplyr)
-library(gdata)
+library(broom)
+#library(gdata)
 
 
 # questions
@@ -81,8 +82,10 @@ rx_opioids <- rx_per_prescriber[opioids_prescribed == TRUE,]
 head(rx_opioids)
 # keep only qualified prescribers and countrx column not missing
 
-rx_opioids<- filter(rx_opioids,Opioid.Prescriber==1,countrx!='na')
+rx_opioids<- filter(rx_opioids,Opioid.Prescriber==1,!(is.na(countrx)))
 head(rx_opioids)
+
+
 rx_opioids$NPI
   # question # 2 test pareto effect (20% of top prescribers are prescribing 80% of prescriptions)
 
@@ -187,11 +190,222 @@ tail(race,15)
 
 # https://www.census.gov/library/publications/2015/demo/p60-253.html 
 
-insurance<-read.csv('hic04_acs.xls')
+insurance<-read.csv('hic04_acs.csv')
+
+# total column is not needed
+insurance <-insurance%>%
+  filter(coverage!='Total')
+  
 
 
 # https://www.kff.org/other/state-indicator/health-spending-per-capita/?currentTimeframe=0&selectedRows=%7B%22states%22:%7B%22all%22:%7B%7D%7D,%22wrapups%22:%7B%22united-states%22:%7B%7D%7D%7D&sortModel=%7B%22colId%22:%22Location%22,%22sort%22:%22asc%22%7D
 
-percapita_HE<-read_csv('hic04_acs.csv')
+percapita_HE<-read_csv('raw_data.csv',skip =2)
 
 head(percapita_HE)
+percapita_HE<-percapita_HE%>%
+  filter(state!='United States')
+
+# let's merge supplementary data with prescription data
+
+head(diabetes,2)
+head(rx_opioids,2)
+head(race,20)
+head(insurance,10)
+head(percapita_HE,2)
+# rename columns for per_capita health expenditure
+colnames(percapita_HE)<-c('State','Coverage_type','2016_pct','2014_pct')
+# let's keep only uninsured from insurance dataset
+insurance<-insurance%>%
+  filter(coverage=='Uninsured')
+
+# let's keep 2014 estimate 
+
+race<-race%>%
+  filter(Year.id=='est72014',Sex.id=='totsex',GEO.display.label!="United States")
+race_df<-data.frame(race$GEO.display.label,race$Hisp.id,race$totpop,race$wa,race$ba,race$ia,race$aa,race$na,race$tom)
+
+head(race_df)
+
+race_df<-race_df%>%
+  filter(race.Hisp.id=='nhisp')
+
+head(race_df)
+
+colnames(race_df)<-c('state','nonhisp','totpop','wa','ba','ia','aa','na','tom')
+race_df<-race_df<-race_df%>%
+  mutate(state=toupper(state),wa=round(wa/totpop*100,2),ba=round(ba/totpop*100,2),ia=round(ia/totpop*100,2),aa=round(aa/totpop*100,2),na=round(na/totpop*100,2),tom=round(tom/totpop*100,2))
+head(race_df)
+# create state name and state abbriviation data
+
+state_df<-data.frame(state.name,state.abb)
+colnames(state_df)<-c('state_name','State')
+DC_state<-data.frame(state_name="District of Columbia",State="DC")
+state_df<-rbind.data.frame(state_df,DC_state)
+
+
+head(rx_opioids)
+
+
+
+# join state names  data with prescription data
+rx_opioids_df<-rx_opioids%>%
+   left_join(state_df,by='State')
+  
+head(rx_opioids_df)
+# rename column names
+
+colnames(rx_opioids_df)[colnames(rx_opioids_df)=='State']<-'State_code'
+colnames(rx_opioids_df)[colnames(rx_opioids_df)=='state_name']<-'state'
+
+
+
+rx_opioids_gender<-rx_opioids_df%>%
+  group_by(Gender)%>%
+  summarize(Sum_CountRx=sum(countrx))
+
+ggplot(rx_opioids_gender,aes(x=Gender)) + geom_bar()
+
+
+head(rx_opioids_nNPI)
+
+# to check if DC has full state name in the dataset
+rx_opioids_df%>%
+  filter(State_code=='DC')
+
+head(insurance)
+
+# join opioids prescription data with  insurance data
+rx_opioids_df<-rx_opioids_df%>%
+  mutate(state=toupper(state))
+
+
+head(rx_opioids_df)
+# take only NPI and countrx column
+rx_opioids_df<-data.frame(rx_opioids_df$state,rx_opioids_df$NPI,rx_opioids_df$countrx)
+# group rx_opioids_df by state
+prescription_by_state<-rx_opioids_df%>% 
+  group_by(rx_opioids_df.state)%>%
+  summarize(countrx=sum(rx_opioids_df.countrx))
+  # rename columns
+
+colnames(prescription_by_state)<-c('state','countrx')
+
+
+# merge overdose data with prescription data
+
+
+colnames(overdose_df)<-c('state','population','deaths','abbrev')
+
+head(overdose_df)
+
+overdose_df<-overdose_df%>%
+  mutate(state=toupper(state))
+
+head(overdose_df)
+# merge overdose data with opioids rx
+merged_df1<- overdose_df %>%
+  left_join(prescription_by_state,by='state')
+
+
+# join health insurance by states
+merged_df2<-merged_df1 %>%
+  left_join(insurance,by='state')
+head(insurance)
+
+head(merged_df2)
+
+
+# join opioids prescription data with  percapita HE data
+
+percapita_HE<-percapita_HE%>%
+  mutate(state=toupper(state))
+
+merged_df3<-merged_df2 %>%
+  left_join(percapita_HE,by='state')
+head(merged_df3)
+
+# merge diabets by states data to merged data
+head(diabetes)
+diabetes<-data.frame(diabetes$State,diabetes$Percentage)
+colnames(diabetes)<-c('state','diabetes_pct')
+# capitalize the satates
+diabetes<-diabetes%>%
+  filter(state!='Median of States')%>%
+  mutate(state=toupper(state))
+
+# merge diabetes
+merged_df4<-merged_df3%>%
+              left_join(diabetes,by='state')
+     head(merged_df4)       
+# merge race_df to the merged data
+
+merged_df5<-merged_df4%>%
+  left_join(race_df,by='state')
+
+head(merged_df5)
+
+# it looks states with more uninsured popualtion has likely have more Opiodis prescription.
+
+ggplot(merged_df5,aes(x=countrx,y=deaths)) + geom_point()
+
+# outlier function
+is_outlier <- function(x) {
+  return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
+}
+#  customized outlier
+
+is_outlier_fn <- function(x) {
+  return(x < 5.00| x > 15)
+}
+
+
+ggplot(merged_df5,aes(x=HE_per_capita,y=deaths)) + geom_point()
+
+ggplot(merged_df5,aes(x=diabetes_pct,y=deaths)) + geom_point() +scale_y_log10()
+
+ggplot(merged_df5,aes(x=wa,y=deaths))+geom_point() +scale_y_log10()
+ggplot(merged_df5,aes(x=ba,y=deaths))+geom_point() +scale_y_log10()
+
+ggplot(merged_df5,aes(x=population,y=deaths)) + geom_point()
+
+
+head(merged_df5)
+
+# estimate a linear regression
+
+# gap_models contains regression model for each country
+
+linearModel <-lm(formula = deaths~countrx +population + X2014_pct+HE_per_capita+diabetes_pct+ wa+ba, data =merged_df5 )
+
+tidy(linearModel)
+glance(linearModel)
+augmented_df<-augment(linearModel)
+
+head(augmented_df)
+
+augmented_df%>%
+ggplot(aes(x=countrx))+geom_point(aes(y=deaths))+geom_line(aes(y=.fitted,color='red')) + 
+guides(fill=FALSE,color=FALSE) + ggtitle("relationship between overdose deaths  and number of rx")
+
+augmented_df%>%
+  ggplot(aes(x=diabetes_pct))+geom_point(aes(y=deaths))+ scale_y_log10()+geom_line(aes(y=.fitted,color='red')) + 
+  guides(fill=FALSE,color=FALSE) + ggtitle("overdose deaths and percentage of diabetic population")
+
+augmented_df%>%
+  ggplot(aes(x=HE_per_capita))+geom_point(aes(y=deaths))+geom_line(aes(y=.fitted,color='red')) + 
+  guides(fill=FALSE,color=FALSE) + ggtitle("overdose deaths and percapita health expenditure")
+
+
+augmented_df%>%
+  ggplot(aes(x=X2014_pct))+geom_point(aes(y=deaths))+ scale_y_log10()+geom_line(aes(y=.fitted,color='red')) + 
+  guides(fill=FALSE,color=FALSE) + ggtitle("overdose deaths and percentage of uninsured")
+
+######################## model with only two explanatory variables: countrx and population ########### 
+# linear mode 2
+linearModel_2<-lm(formula = deaths~countrx +population, data =merged_df5)
+tidy(linearModel_2)
+glance(linearModel_2)
+
+
+
