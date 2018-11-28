@@ -150,6 +150,12 @@ count_bottom_20_pct
 
 pareto_effect<-count_top_80_pct*100/(count_bottom_20_pct+count_top_80_pct)
 
+pareto_df<-data.frame(count_bottom_20_pct,count_top_80_pct)
+
+head(pareto_df)
+
+
+
 # Only 20.26% of the qualified prescribers have prescribed 80% of Opioids prescriptions
 # when only actuall prescribers are considered 30.75% of prescribers prescribed 80% of the Opioids
 pareto_effect
@@ -161,11 +167,12 @@ ggplot(
 ) +
   geom_histogram(binwidth =20)
 
+
 #prescription_per_NPI<-prescription_per_NPI %>%
  # mutate(cum_cdf=ecdf(pct_prescribed))
 
 head(prescription_per_NPI)
-plot(prescription_per_NPI$cummulative_pct, xlab = 'count_of_prescriptions', ylab = 'cummulative_percent', main = 'Empirical Cumluative Distribution\nOpioids Prescriptions')
+plot(prescription_per_NPI$cummulative_pct, xlab = 'count_of_prescriptions', ylab = 'cummulative_percent', main = 'Cumluative Distribution\nOpioids Prescriptions')
 
 
 
@@ -275,6 +282,8 @@ rx_opioids_df%>%
 
 head(insurance)
 
+colnames(insurance)<-c('state','coverage', "2016_Uninsured","uninsured_2014")
+
 # join opioids prescription data with  insurance data
 rx_opioids_df<-rx_opioids_df%>%
   mutate(state=toupper(state))
@@ -345,6 +354,8 @@ merged_df5<-merged_df4%>%
 
 head(merged_df5)
 
+
+
 # it looks states with more uninsured popualtion has likely have more Opiodis prescription.
 
 ggplot(merged_df5,aes(x=countrx,y=deaths)) + geom_point()
@@ -376,7 +387,18 @@ head(merged_df5)
 
 # gap_models contains regression model for each country
 
-linearModel <-lm(formula = deaths~countrx +population + X2014_pct+HE_per_capita+diabetes_pct+ wa+ba, data =merged_df5 )
+linearModel <-lm(formula = deaths~countrx+population + uninsured_2014 + diabetes_pct, data =merged_df5 )
+
+
+  cor(merged_df5$deaths,merged_df5$countrx)
+
+# plot the residual
+
+plot(linearModel)
+
+# use summary 
+# summary(linearModel)
+# or use tidy ,glance and augment
 
 tidy(linearModel)
 glance(linearModel)
@@ -385,12 +407,19 @@ augmented_df<-augment(linearModel)
 head(augmented_df)
 
 augmented_df%>%
-ggplot(aes(x=countrx))+geom_point(aes(y=deaths))+geom_line(aes(y=.fitted,color='red')) + 
-guides(fill=FALSE,color=FALSE) + ggtitle("relationship between overdose deaths  and number of rx")
+ggplot(aes(x=countrx))+
+  geom_point(aes(y=deaths))+
+  geom_line(aes(y=.fitted,color='red')) + 
+  guides(fill=FALSE,color=FALSE) + 
+  ggtitle("relationship between overdose deaths  and number of rx")
 
 augmented_df%>%
-  ggplot(aes(x=diabetes_pct))+geom_point(aes(y=deaths))+ scale_y_log10()+geom_line(aes(y=.fitted,color='red')) + 
-  guides(fill=FALSE,color=FALSE) + ggtitle("overdose deaths and percentage of diabetic population")
+  ggplot(aes(x=diabetes_pct))+
+  geom_point(aes(y=deaths))+ 
+  scale_y_log10()+
+  geom_line(aes(x=diabetes_pct,y=.fitted,color='red')) + 
+  guides(fill=FALSE,color=FALSE) + 
+  ggtitle("overdose deaths and percentage of diabetic population") 
 
 augmented_df%>%
   ggplot(aes(x=HE_per_capita))+geom_point(aes(y=deaths))+geom_line(aes(y=.fitted,color='red')) + 
@@ -398,7 +427,7 @@ augmented_df%>%
 
 
 augmented_df%>%
-  ggplot(aes(x=X2014_pct))+geom_point(aes(y=deaths))+ scale_y_log10()+geom_line(aes(y=.fitted,color='red')) + 
+  ggplot(aes(x=uninsured_2014))+geom_point(aes(y=deaths))+ scale_y_log10()+geom_line(aes(y=.fitted,color='red')) + 
   guides(fill=FALSE,color=FALSE) + ggtitle("overdose deaths and percentage of uninsured")
 
 ######################## model with only two explanatory variables: countrx and population ########### 
