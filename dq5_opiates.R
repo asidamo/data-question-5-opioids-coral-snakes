@@ -24,6 +24,7 @@ library(ggplot2)
 library(beeswarm)
 library(dplyr)
 library(modelr)
+library(randomForest)
 
 #Importing data
 opioids_raw <- read_csv('data/opioids.csv')
@@ -45,8 +46,8 @@ prescribers_clean <- filter(prescribers_raw, nonstatematches == FALSE)
 
 # Using gather to associate counts of prescriptions of individual drugs with providers.
 all_rx_per_npi <- gather(prescribers_clean, rx, countrx, ABILIFY:ZOLPIDEM.TARTRATE)
-#all_rx_per_npi_16 <- gather(prescribers_16_raw, rx, countrx, 
-#                            ACETAMINOPHEN.CODEINE:ZOLPIDEM.TARTRATE)
+all_rx_per_npi_16 <- gather(prescribers_16_raw, rx, countrx, 
+                            ACETAMINOPHEN.CODEINE:ZOLPIDEM.TARTRATE)
 all_rx_op <- all_rx_per_npi[all_rx_per_npi$Opioid.Prescriber == 1,]
 all_rx_non <- all_rx_per_npi[all_rx_per_npi$Opioid.Prescriber == 0,]
 # 11 drugs are identified as opioids from opioids.csv. Non-matching labels require manual 
@@ -92,6 +93,16 @@ opioid_per_npi <- all_rx_per_npi[matching_records == TRUE,]
 unique(opioid_per_npi$rx)
 opioid_bynpi_hirx <- opioid_per_npi[opioid_per_npi$Opioid.Prescriber == 1,]
 non_prescribers <- opioid_per_npi[opioid_per_npi$Opioid.Prescriber == 0,]
+
+# Trying out nesting
+opioid_bynpi_hirx %>% 
+  group_by(State) %>% 
+  nest()
+
+
+
+
+
 
 # Need to add mean, max, summaries/bar plots
 count_of_opioids <- opioid_bynpi_hirx %>% 
