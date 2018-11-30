@@ -16,7 +16,7 @@
 #
 # Primary model: correlation between rate of opioid prescription and rate of overdose death
 
-
+setwd("~/DataScience/data-question-5-opioids-coral-snakes/")
 # Importing libraries
 library(tidyverse)
 library(magrittr)
@@ -34,8 +34,6 @@ prescribers_16_raw <- read_csv('prescriber-info_CY16.csv')
 # Transform state to factor (re-factor this later)
 overdoses_raw$State <- as.factor(overdoses_raw$State)
 
-# How the eff does the tilde work?
-# modtest <- overdoses_raw$deathsper100k ~ overdoses_raw$State
 
 #non-states identified, dropping from raw data
 nonstates <- c("PR", "ZZ", "AA", "AE", "GU","VI","DC")
@@ -94,14 +92,6 @@ unique(opioid_per_npi$rx)
 opioid_bynpi_hirx <- opioid_per_npi[opioid_per_npi$Opioid.Prescriber == 1,]
 non_prescribers <- opioid_per_npi[opioid_per_npi$Opioid.Prescriber == 0,]
 
-# Trying out nesting
-opioid_bynpi_hirx %>% 
-  group_by(State) %>% 
-  nest()
-
-
-
-
 
 
 # Need to add mean, max, summaries/bar plots
@@ -146,6 +136,69 @@ op_countperstate <- all_rx_op %>%
   group_by(State) %>% 
   summarise(op_totalrxperstate = sum(countrx))
 
+op_countperspec <- opioid_bynpi_hirx %>% 
+  group_by(State, Specialty) %>% 
+  summarise(op_totalrxperspec = n())
+
+
+typeofdoc <- unique(prescribers_clean$Specialty)
+
+countofspec <- prescribers_clean %>% 
+  group_by(Specialty) %>% 
+  summarise(countofspec = n())
+
+op_countofspec <- prescribers_clean %>% 
+  filter(prescribers_clean$Opioid.Prescriber == 1) %>% 
+  group_by(Specialty) %>% 
+  summarise(countofspec = n())
+
+# Creating dfs for top specialties 
+# (selected specialties are 62% of overall pop and 73.8% of opioid prescriber pop)
+fampractice <- prescribers_clean %>% 
+  filter(Specialty == "Family Practice") %>% 
+  group_by(State) %>% 
+  summarise(fpcount = n())
+
+physassts <- prescribers_clean %>% 
+  filter(Specialty == "Physician Assistant") %>% 
+  group_by(State) %>% 
+  summarise(pacount = n())
+
+emergency <- prescribers_clean %>% 
+  filter(Specialty == "Emergency Medicine") %>% 
+  group_by(State) %>% 
+  summarise(edcount = n())
+
+nursepractitioners <- prescribers_clean %>% 
+  filter(Specialty == "Nurse Practitioner") %>% 
+  group_by(State) %>% 
+  summarise(npcount = n())
+
+intmed <- prescribers_clean %>% 
+  filter(Specialty == "Internal Medicine") %>% 
+  group_by(State) %>% 
+  summarise(intmed = n())
+
+dentists <- prescribers_clean %>%
+  filter(Specialty == "Dentist") %>% 
+  group_by(State) %>% 
+  summarise(dentists = n())
+
+orthosx <- prescribers_clean %>% 
+  filter(Specialty == "Orthopedic Surgery") %>% 
+  group_by(State) %>% 
+  summarise(orthocount = n())
+
+generalsx <- prescribers_clean %>% 
+  filter(Specialty == "General Surgery") %>% 
+  group_by(State) %>% 
+  summarise(gensurgcount = n())
+
+overdose_specs <- overdoses_raw %>% 
+  cbind(fampractice, emergency, nursepractitioners, intmed, dentists, orthosx, generalsx)
+
+sum(specialties$specperstate)
+
 View(opioidprescriberperstate)
 mean(countperstate$total)
 #ggplot(data = opioidprescriberperstate, aes(x = reorder(State, total), y = total)) +
@@ -156,6 +209,9 @@ opioidprescriberperstate <-
   group_by(State) %>% 
   summarise(totalprescribers = sum(Opioid.Prescriber))
 View(opioidprescriberperstate)
+
+
+
 
 #mutate(overdoses_raw, NormDeaths, as.numeric(Deaths)/as.numeric(Population))
 
