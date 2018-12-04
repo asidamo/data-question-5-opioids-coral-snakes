@@ -30,7 +30,7 @@ library(randomForest)
 opioids_raw <- read_csv('data/opioids.csv')
 overdoses_raw <- read_csv('data/overdoses.csv')
 prescribers_raw <- read_csv('data/prescriber-info.csv')
-prescribers_16_raw <- read_csv('prescriber-info_CY16.csv')
+#prescribers_16_raw <- read_csv('prescriber-info_CY16.csv')
 # Transform state to factor (re-factor this later)
 overdoses_raw$State <- as.factor(overdoses_raw$State)
 
@@ -44,8 +44,8 @@ prescribers_clean <- filter(prescribers_raw, nonstatematches == FALSE)
 
 # Using gather to associate counts of prescriptions of individual drugs with providers.
 all_rx_per_npi <- gather(prescribers_clean, rx, countrx, ABILIFY:ZOLPIDEM.TARTRATE)
-all_rx_per_npi_16 <- gather(prescribers_16_raw, rx, countrx, 
-                            ACETAMINOPHEN.CODEINE:ZOLPIDEM.TARTRATE)
+#all_rx_per_npi_16 <- gather(prescribers_16_raw, rx, countrx, 
+#                            ACETAMINOPHEN.CODEINE:ZOLPIDEM.TARTRATE)
 all_rx_op <- all_rx_per_npi[all_rx_per_npi$Opioid.Prescriber == 1,]
 all_rx_non <- all_rx_per_npi[all_rx_per_npi$Opioid.Prescriber == 0,]
 # 11 drugs are identified as opioids from opioids.csv. Non-matching labels require manual 
@@ -85,15 +85,15 @@ overdoses_raw %<>% mutate(deathsper100k = Deaths / (Population/100000))
 
 
 
-
 # Slicing gathered dataset for only opioid drugs and Opioid prescribers. 
 opioid_per_npi <- all_rx_per_npi[matching_records == TRUE,]
 unique(opioid_per_npi$rx)
 opioid_bynpi_hirx <- opioid_per_npi[opioid_per_npi$Opioid.Prescriber == 1,]
 non_prescribers <- opioid_per_npi[opioid_per_npi$Opioid.Prescriber == 0,]
 
-
-
+rx_opioids<- filter(opioid_per_npi,Opioid.Prescriber==1,!(is.na(countrx)))
+head(rx_opioids)
+length(rx_opioids)
 # Need to add mean, max, summaries/bar plots
 count_of_opioids <- opioid_bynpi_hirx %>% 
   group_by(rx) %>% 
@@ -135,6 +135,14 @@ countperstate <- all_rx_non %>%
 op_countperstate <- all_rx_op %>% 
   group_by(State) %>% 
   summarise(op_totalrxperstate = sum(countrx))
+
+op_perstate_od_merge <- 
+  merge(x = op_countperstate, y = overdoses_raw, by.x = "State", by.y = "Abbrev")
+
+op_perstate_od_merge$deathsperpop <- op_perstate_od_merge$Deaths / op_perstate_od_merge$Population
+op_perstate_od_merge$rxperpop <- op_perstate_od_merge$op_totalrxperstate / op_perstate_od_merge$Population
+
+cor(op_perstate_od_merge$deathsperpop, op_perstate_od_merge$rxperpop)
 
 op_countperspec <- opioid_bynpi_hirx %>% 
   group_by(State, Specialty) %>% 
@@ -211,8 +219,13 @@ opioidprescriberperstate <-
 View(opioidprescriberperstate)
 
 
+acetaminophen <- prescribers_clean[, c("NPI","Gender", "State", "Credentials", "Specialty", "HYDROCODONE.ACETAMINOPHEN")] 
+#  filter(, c("NPI","Gender", "State", "Credentials", "Specialty", "HYDROCODONE.ACETAMINOPHEN")
 
 
+lortabdeaths <- merge(x = overdoses_raw, y = acetaminophen, by.x = "Abbrev", by.y = "State")
+lortabmod <- lm(Deaths ~ HYDROCODONE.ACETAMINOPHEN, data = lortabdeaths)
+cor(lortabdeaths$Deaths, lortabdeaths$HYDROCODONE.ACETAMINOPHEN)
 #mutate(overdoses_raw, NormDeaths, as.numeric(Deaths)/as.numeric(Population))
 
 ggplot(overdoses_raw, aes(x = reorder(Abbrev, deathsper100k), y = deathsper100k)) +
