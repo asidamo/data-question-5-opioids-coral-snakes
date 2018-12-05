@@ -51,6 +51,8 @@ prescriber_2016 <- rx_per_2016 %>%
 non_prescriber_2016 <- rx_per_2016 %>% 
                         filter(Opioid.Prescriber == 0)
 
+unique(prescriber$State)
+
 drops <- c("PR", "ZZ", "AA", "AE", "GU", "VI", "DC", "AP", NA)
 
 drop_states <- prescriber$State %in% drops
@@ -376,9 +378,9 @@ list7 <- rep(('2014'), length(list6))
 list8 <- 1:547
 list9 <- rep(('2016'), length(list8))
 
-length(list3)
-
 Year_2014 <- data.frame(overdoses, Year = list2)
+
+Year_2014
 
 Opioids_2014 <- cbind(list6, list7)
 
@@ -386,11 +388,17 @@ Opioids_2014 <- data.frame(op_count_by_state, Year = list7)
 
 Opioids_2014
 
-Opioids_2016 <- cbind(list8, list9)
+Opioids_2016 <- rbind(list8, list9)
 
 Opioids_2016 <- data.frame(op_count_by_state_2016, Year = list9)
 
 Opioids_2016
+
+OP_DATA_table <- merge(Opioids_2014, Opioids_2016, all = TRUE)
+
+OP_DATA_table[is.na(OP_DATA_table)] <- 0
+
+OP_DATA_table
 
 Year_2014
 
@@ -419,6 +427,7 @@ Opioid_merge <- rbind(Opioids_2014, Opioids_2016)
 Opioid_merge
 
 summary(Opioid_merge)
+
 death_merge <- cbind(overdoses, deaths_2016)
 
 death_merge
@@ -465,3 +474,4 @@ Op_merge_plot <- ggplot() +
   ggtitle('Opioid Prescriptions by State, 2014 vs. 2016')
 
 Op_merge_plot
+
