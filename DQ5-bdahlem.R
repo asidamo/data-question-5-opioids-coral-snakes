@@ -5,15 +5,15 @@ library(scales)
 library(RColorBrewer)
 library(reshape2)
 
-overdoses <- read_csv('~/Desktop/DQ5/data-question-5-opioids-coral-snakes/overdoses.csv')
+overdoses <- read_csv('./Data/overdoses.csv')
 
-prescribers <- read_csv('~/Desktop/DQ5/data-question-5-opioids-coral-snakes/prescriber-info.csv')
+prescribers <- read_csv('./Data/prescriber-info.csv')
 
-opioids <- read_csv('~/Desktop/DQ5/data-question-5-opioids-coral-snakes/opioids.csv')
+opioids <- read_csv('./Data/opioids.csv')
 
-prescribers_2016 <- read_csv('~/Desktop/DQ5/data-question-5-opioids-coral-snakes/prescriber-info_CY16.csv')
+prescribers_2016 <- read_csv('./Data/prescriber-info_CY16.csv')
 
-deaths_2016 <- read_csv('~/Desktop/DQ5/data-question-5-opioids-coral-snakes/deaths-by-state-US-2016.csv')
+deaths_2016 <- read_csv('./Data/deaths-by-state-US-2016.csv')
 
 prescribers_2016
 
