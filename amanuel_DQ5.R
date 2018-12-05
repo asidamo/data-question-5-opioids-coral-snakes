@@ -56,7 +56,7 @@ head(rx_per_prescriber,5)
 
 # drugs identified as matching in Opioids prescription data and prescribers information data.
 
-matches <- c("ACETAMINOPHEN.CODEINE", "FENTANYL", "HYDROMORPHONE.HCL", "METHADONE.HCL", "MORPHINE.SULFATE", "MORPHINE.SULFATE.ER", "OXYCODONE.HCL", "OXYCODONE.ACETAMINOPHEN",
+matches <- c("ACETAMINOPHEN.CODEINE", "FENTANYL", "HYDROMORPHONE.HCL", 'HYDROCODONE.ACETAMINOPHEN',"METHADONE.HCL", "MORPHINE.SULFATE", "MORPHINE.SULFATE.ER", "OXYCODONE.HCL", "OXYCODONE.ACETAMINOPHEN",
              "OXYCONTIN", "TRAMADOL.HCL")
 
 # create logical variable determines if RX by the NPIs are Opioids or not
