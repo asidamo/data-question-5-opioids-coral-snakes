@@ -337,12 +337,12 @@ opioid_plot_1 <- ggplot() +
   ggtitle('Overdoses by State')
 
 
-opioid_plot_2 <- ggplot(data = overdoses,aes(x = State, y = Deaths)) + 
-  geom_bar(aes(fill = factor(round(100000*Ratio))), stat = 'identity') + 
-  scale_colour_manual(values = (brewer.pal(3,"OrRd")), aesthetics = 'fill') +
-  labs(x = "State", y = "Deaths", fill = 'Deaths Per 100,000') + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  ggtitle('Overdoses by State')
+#opioid_plot_2 <- ggplot(data = overdoses,aes(x = State, y = Deaths)) + 
+#  geom_bar(aes(fill = factor(round(100000*Ratio))), stat = 'identity') + 
+#  scale_colour_manual(values = (brewer.pal(3,"OrRd")), aesthetics = 'fill') +
+#  labs(x = "State", y = "Deaths", fill = 'Deaths Per 100,000') + 
+#  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+#  ggtitle('Overdoses by State')
 
 colnames(deaths_2016)[colnames(deaths_2016) == 'Ratio'] <- 'Ratio_2016'
 
