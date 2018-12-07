@@ -57,16 +57,17 @@ matches <- c("ACETAMINOPHEN.CODEINE", "FENTANYL", "HYDROMORPHONE.HCL", 'HYDROCOD
 # create logical variable determines if RX by the NPIs are Opioids or not
 opioids_prescribed <- rx_per_prescriber$rx %in% matches
 
+# filter only NPI records where the prescribed drugs were opioids
+rx_opioids <- rx_per_prescriber[opioids_prescribed == TRUE,]
+
 # drop non_state USA territiries listed in the data
 
 drops <- c("PR", "ZZ", "AA", "AE", "GU", "VI", "DC", "AP", NA)
-drop_states <- opioids_prescribed$State %in% drops
+drop_states <- rx_opioids$State %in% drops
 
-opioids_prescribed <- opioids_prescribed[drop_states == FALSE, ]
+# filter only valid states
+rx_opioids <- rx_opioids[drop_states == FALSE, ]
 
-# filter only NPI records where the prescribed drugs were opioids
-
-rx_opioids <- rx_per_prescriber[opioids_prescribed == TRUE,]
 
 head(rx_opioids)
 # keep only qualified prescribers and countrx column not missing
@@ -75,7 +76,38 @@ rx_opioids<- filter(rx_opioids,Opioid.Prescriber==1,!(is.na(countrx)))
 
 head(rx_opioids)
 
+top_opioids<-rx_opioids%>%
+mutate(HYDROCODONE.ACETAMINOPHEN = if_else(`rx` == 'HYDROCODONE.ACETAMINOPHEN', 1, 0),
+       TRAMADOL.HCL = if_else(`rx` == 'TRAMADOL.HCL', 1, 0),
+       MORPHINE.SULFATE.ER = if_else(`rx` == 'MORPHINE.SULFATE.ER', 1, 0),
+       OXYCODONE.HCL = if_else(`rx` == 'OXYCODONE.HCL', 1, 0),
+       OXYCODONE.ACETAMINOPHEN = if_else(`rx` == 'OXYCODONE.ACETAMINOPHEN', 1, 0)) 
 
+top5 <- top_opioids%>%
+  mutate(HYDROCODONE.ACETAMINOPHEN=countrx*HYDROCODONE.ACETAMINOPHEN,
+         TRAMADOL.HCL=countrx*TRAMADOL.HCL,
+         MORPHINE.SULFATE.ER=countrx*MORPHINE.SULFATE.ER,
+         OXYCODONE.HCL=countrx*OXYCODONE.HCL,
+         OXYCODONE.ACETAMINOPHEN=countrx*OXYCODONE.ACETAMINOPHEN )
+View(top5)
+# keep only State and top 5 Opioids columns
+
+top5<-data.frame(top5$State,top5$HYDROCODONE.ACETAMINOPHEN,top5$TRAMADOL.HCL,top5$MORPHINE.SULFATE.ER,
+ 
+                        top5$OXYCODONE.HCL,top5$OXYCODONE.ACETAMINOPHEN)
+
+colnames(top5)<-c('State','HYDROCODONE.ACETAMINOPHEN','TRAMADOL.HCL','MORPHINE.SULFATE.ER',
+                  
+                  'OXYCODONE.HCL','OXYCODONE.ACETAMINOPHEN')
+head(top5)
+
+top5 %>%
+group_by(State)%>%
+summarize(HYDROCODONE.ACETAMINOPHEN=sum(HYDROCODONE.ACETAMINOPHEN),
+          TRAMADOL.HCL=sum(TRAMADOL.HCL),
+          MORPHINE.SULFATE.ER=sum(MORPHINE.SULFATE.ER),
+          OXYCODONE.HCL=sum(OXYCODONE.HCL),
+          OXYCODONE.ACETAMINOPHEN=sum(OXYCODONE.ACETAMINOPHEN))
 
   # question # 2 test pareto effect (20% of top prescribers are prescribing 80% of prescriptions)
 
