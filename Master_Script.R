@@ -8,6 +8,7 @@ library(rmarkdown)
 library(knitr)
 #library(gdata)
 
+# Read in data as dfs
 overdoses <- read_csv('./Data/overdoses.csv')
 
 prescribers <- read_csv('./Data/prescriber-info.csv')
@@ -18,82 +19,49 @@ prescribers_2016 <- read_csv('./Data/prescriber-info_CY16.csv')
 
 deaths_2016 <- read_csv('./Data/deaths-by-state-US-2016.csv')
 
-prescribers_2016
-
+#Rename columns
 colnames(overdoses)[colnames(overdoses) == 'State'] <- 'Full_State_Name'
-
 colnames(overdoses)[colnames(overdoses) == 'Abbrev'] <- 'State'
 
 colnames(deaths_2016)[colnames(deaths_2016) == 'number'] <- 'Deaths_2016'
-
 colnames(deaths_2016)[colnames(deaths_2016) == 'State'] <- 'State_2016'
+colnames(deaths_2016)[colnames(deaths_2016) == 'Population'] <- 'Population_2016'
 
-deaths_2016
-
-overdoses
-
+#Add field for deaths per 100k population
 deaths_2016 %<>% 
   mutate(Population = round(deaths_2016$Deaths_2016/(deaths_2016$rate/100000)))
 
-colnames(deaths_2016)[colnames(deaths_2016) == 'Population'] <- 'Population_2016'
-
-deaths_2016
-
+# Gather statements to convert from wide (drug per npi) to long (npi per drug)
 rx_per_2016 <- gather(prescribers_2016, rx, countrx, ACETAMINOPHEN.CODEINE:ZOLPIDEM.TARTRATE)
-
 rx_per_prescriber <- gather(prescribers, rx, countrx, ABILIFY:ZOLPIDEM.TARTRATE)
 
+# Create dfs for opioid and non-opioid prescribers
 prescriber <- rx_per_prescriber %>% 
   filter(Opioid.Prescriber == 1)
 non_prescriber <- rx_per_prescriber %>% 
   filter(Opioid.Prescriber == 0)
-
+# Same as above for 2016 data
 prescriber_2016 <- rx_per_2016 %>% 
   filter(Opioid.Prescriber == 1)
-
 non_prescriber_2016 <- rx_per_2016 %>% 
   filter(Opioid.Prescriber == 0)
 
-unique(prescriber$State)
-
+# Drop data with non-US states
 drops <- c("PR", "ZZ", "AA", "AE", "GU", "VI", "DC", "AP", NA)
-
 drop_states <- prescriber$State %in% drops
-
 drop_deaths_2016 <- deaths_2016$State_2016 %in% drops
-
-drop_deaths_2016
-
-drop_states
-
 drop_states_2016 <- prescriber_2016$State %in% drops
-
-drop_states_2016
-
 non_drop_states <- non_prescriber$State %in% drops
-
-non_drop_states
-
 non_drop_states_2016 <- non_prescriber_2016$State %in% drops
 
-non_drop_states_2016
-
 prescriber <- prescriber[drop_states == FALSE, ]
-
 deaths_2016 <- deaths_2016[drop_deaths_2016 == FALSE, ]
-
-deaths_2016
-
 prescriber_2016 <- prescriber_2016[drop_states_2016 == FALSE, ]
-
-prescriber_2016
-
 non_prescriber <- non_prescriber[non_drop_states == FALSE, ]
-
 non_prescriber_2016 <- non_prescriber_2016[non_drop_states_2016 == FALSE, ]
-
 unique(non_prescriber_2016$State)
 
+# Group by drug
 prescriber_by_rx <- prescriber %>% 
   group_by(rx)
 
@@ -101,89 +69,47 @@ matches <- c("ACETAMINOPHEN.CODEINE", "FENTANYL", "HYDROCODONE.ACETAMINOPHEN", "
              "MORPHINE.SULFATE", "MORPHINE.SULFATE.ER", "OXYCODONE.HCL", "OXYCODONE.ACETAMINOPHEN",
              "OXYCONTIN", "TRAMADOL.HCL")
 
+# Create match logical to filter for only opioid drugs
 op_match <- prescriber$rx %in% matches
-
 op_match_2016 <- prescriber_2016$rx %in% matches
-
 non_op_match <- non_prescriber$rx %in% matches
-
 non_op_match_2016 <- non_prescriber_2016$rx %in% matches
 
 op_match <- as.data.frame(op_match)
-
-op_match
-
 op_match <- prescriber[op_match == TRUE, ]
-
-op_match_2016 <- prescriber[op_match == TRUE, ]
-
 op_mismatch <- prescriber[op_match != TRUE, ]
 
 op_mismatch_2016 <- prescriber_2016[op_match != TRUE, ]
-
-head(op_match)
+op_match_2016 <- prescriber[op_match == TRUE, ]
 
 non_op_match <- non_prescriber[non_op_match == TRUE, ]
-
 non_op_match_2016 <- non_prescriber_2016[non_op_match_2016 == TRUE, ]
 
-head(non_op_match)
-
-summary(op_match)
-
-summary(non_op_match)
-
 op_match_by_state <- aggregate(data.frame(count = op_match$State), list(value = op_match$State), length)
-
-op_match_by_state_2016 <- aggregate(data.frame(count = op_match_2016$State), list(value = op_match_2016$State), length)
-
-op_match_by_rx <- aggregate(data.frame(count = op_match$rx), list(value = op_match$rx), length)
-
-head(op_match_by_state)
-
-head(op_match_by_state_2016)
-
 op_match_by_state <- as.data.frame(op_match_by_state)
-
-op_match_by_state_2016 <- as.data.frame(op_match_by_state_2016)
-
-str(op_match_by_state)
-
-str(op_match_by_state_2016)
-
 op_match_by_state$count <- as.numeric(op_match_by_state$count)
-
-op_match_by_state_2016$count <- as.numeric(op_match_by_state_2016$count)
-
-str(op_match_by_state)
-
-str(op_match_by_state_2016)
 
 count_by_state <- op_match_by_state %>% 
   group_by(value) %>% 
   summarise(total = sum(count))
 
+op_match_by_rx <- aggregate(data.frame(count = op_match$rx), list(value = op_match$rx), length)
+
+op_match_by_state_2016 <- aggregate(data.frame(count = op_match_2016$State), list(value = op_match_2016$State), length)
+op_match_by_state_2016 <- as.data.frame(op_match_by_state_2016)
+op_match_by_state_2016$count <- as.numeric(op_match_by_state_2016$count)
+
 count_by_state_2016 <- op_match_by_state_2016 %>% 
   group_by(value) %>% 
   summarise(total = sum(count))
 
-count_by_state_2016
-
 zero_value <- c(0)
-
 drop_null_rx <- prescriber$countrx %in% zero_value
-
 drop_null_rx_2016 <- prescriber_2016$countrx %in% zero_value
-
-drop_null_rx
 
 nondrop_null_rx <- non_prescriber$countrx %in% zero_value
 
 nondrop_null_rx_2016 <- non_prescriber_2016$countrx %in% zero_value
-
-nondrop_null_rx
-
-nondrop_null_rx_2016
 
 prescriber_no_null <- prescriber[drop_null_rx == FALSE, ]
 
@@ -192,16 +118,6 @@ prescriber_no_null_2016 <- prescriber_2016[drop_null_rx_2016 == FALSE, ]
 non_prescriber_no_null <- non_prescriber[nondrop_null_rx == FALSE, ]
 
 non_prescriber_no_null_2016 <- non_prescriber_2016[nondrop_null_rx_2016 == FALSE, ]
-
-head(non_prescriber_no_null)
-
-head(prescriber_no_null_2016)
-
-summary(non_prescriber_no_null)
-
-head(prescriber_no_null)
-
-summary(prescriber_no_null)
 
 op_match_nonull <- prescriber_no_null$rx %in% matches
 
@@ -220,30 +136,11 @@ non_op_match_nonull <- non_prescriber_no_null[non_op_match_nonull == TRUE, ]
 non_op_match_nonull_2016 <- non_prescriber_no_null_2016[non_op_match_nonull_2016 == TRUE, ]
 
 #The dataset listed below is cleaned to include ONLY valid US states, non-null values for 'countrx', and prescription drugs listed as opioids
-
-op_match_nonull
-
-op_match_nonull_2016
-
-non_op_match_nonull
-
-non_op_match_nonull_2016
-
 NPI_count <- op_match_nonull %>% 
   count(op_match_nonull$NPI)
 
 NPI_count_2016 <- op_match_nonull_2016 %>% 
   count(op_match_nonull_2016$npi)
-
-nrow(NPI_count) 
-
-nrow(NPI_count_2016)
-
-sum(op_match_nonull$countrx) / nrow(NPI_count)
-
-sum(op_match_nonull_2016$countrx) / nrow(NPI_count_2016)
-
-head(overdoses)
 
 overdoses = mutate(overdoses, Ratio = round(Deaths/Population * 100000, digits = 2))
 
@@ -251,13 +148,9 @@ count_of_opioids <- op_match_nonull %>%
   group_by(rx) %>% 
   summarise(total = sum(countrx))
 
-count_of_opioids
-
 count_of_opioids_2016 <- op_match_nonull_2016 %>% 
   group_by(rx) %>% 
   summarise(total = sum(countrx))
-
-count_of_opioids_2016
 
 op_count_by_state <- op_match_nonull %>% 
   group_by(State, rx) %>% 
@@ -270,8 +163,6 @@ op_count_by_state_2016 <- op_match_nonull_2016 %>%
 op_count_by_state = mutate(op_count_by_state, Ratio = total/sum(total))
 
 op_count_by_state_2016 = mutate(op_count_by_state_2016, Ratio = total/sum(total))
-
-op_count_by_state_2016
 
 #ggplot(op_count_by_state, aes(State)) + geom_bar(aes(fill = rx), position = position_stack(reverse = FALSE)) + coord_flip()
 
@@ -352,25 +243,19 @@ opioid_plot_2016 <- ggplot() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
   ggtitle('Overdoses by State 2016')
 
-opioid_plot_2
+View(opioid_plot_2)
 
-opioid_plot_1
+View(opioid_plot_1)
 
-opioid_plot_2016
+View(opioid_plot_2016)
 
 as.data.frame(count_of_opioids)
-
-overdoses
-
-summary(deaths_2016)
 
 unique(deaths_2016$State_2016)
 
 overdoses_1 <- overdoses[,c("State", "Deaths", "Population", 'Ratio')]
 
 overdoses <- overdoses_1
-
-overdoses
 
 list1 <- 1:25
 list2 <- rep(("2014"),length(list1))
@@ -383,57 +268,33 @@ list9 <- rep(('2016'), length(list8))
 
 Year_2014 <- data.frame(overdoses, Year = list2)
 
-Year_2014
-
 Opioids_2014 <- cbind(list6, list7)
 
 Opioids_2014 <- data.frame(op_count_by_state, Year = list7)
-
-Opioids_2014
 
 Opioids_2016 <- rbind(list8, list9)
 
 Opioids_2016 <- data.frame(op_count_by_state_2016, Year = list9)
 
-Opioids_2016
-
 OP_DATA_table <- merge(Opioids_2014, Opioids_2016, all = TRUE)
 
 OP_DATA_table[is.na(OP_DATA_table)] <- 0
 
-OP_DATA_table
-
-Year_2014
-
 deaths_2016$Ratio_2016 <- round(deaths_2016$Deaths_2016/deaths_2016$Population_2016 * 100000, digits = 3)
-
-deaths_2016
 
 deaths_2016 <- deaths_2016[ ,c('State_2016', 'Deaths_2016', 'Population_2016', 'Ratio_2016')]
 
-deaths_2016
-
 Year_2016 <- data.frame(deaths_2016, Year = list4)
-
-Year_2016
 
 names(Year_2014) <- names(Year_2016) 
 
 Year_merge <- rbind(Year_2014, Year_2016)
 
-Year_merge
-
 names(Opioids_2014) <- names(Opioids_2016)
 
 Opioid_merge <- rbind(Opioids_2014, Opioids_2016)
 
-Opioid_merge
-
-summary(Opioid_merge)
-
 death_merge <- cbind(overdoses, deaths_2016)
-
-death_merge
 
 colnames(deaths_2016)[colnames(deaths_2016) == 'Population'] <- 'Population_2016'
 
@@ -453,13 +314,7 @@ death_merge_2 <- death_merge[, c('State','Population_2016', 'Population', 'Death
 
 death_merge <- death_merge_2
 
-death_merge
-
-op_count_by_state_2016
-
 facet_death <- ggplot() + geom_bar(aes(y = Deaths, x = State, fill = Ratio_delta), data = death_merge, stat="identity") + geom_bar(aes(y = Deaths_2016, x = State, fill = Ratio_delta), data = death_merge, stat="identity")
-
-facet_death
 
 ggplot() + 
   geom_bar(data = Year_merge, stat = 'identity', aes(x = State_2016, y = Deaths_2016, fill = Ratio_2016)) + 
@@ -476,26 +331,12 @@ Op_merge_plot <- ggplot() +
   theme(axis.text.y = element_text(size = 5, angle = 45, hjust = 1)) + 
   ggtitle('Opioid Prescriptions by State, 2014 vs. 2016')
 
-Op_merge_plot
-
-# import Opioids  prescription data
-opioids_df<-read_csv('./Data/opioids.csv')
-
-tail(opioids_df)
-
-# import overdose deaths data
-
-overdose_df<-read_csv('./Data/overdoses.csv')
-head(overdose_df,10)
+View(Op_merge_plot)
 
 # Explore overdoses datasets
 # sort overdoses data frame by number of deaths
-
-head(overdose_df,2)
 # sort overdose data in descending order
 overdose_df_SORTED<-overdose_df[order(overdose_df$Deaths,decreasing=TRUE),]
-
-head(overdose_df_SORTED,5)
 
 # bar plot number of overdoses related deaths by states
 ggplot(data=overdose_df_SORTED, aes(x=State, y=Deaths,fill='red')) +
@@ -513,17 +354,9 @@ ggplot(data=overdose_df_SORTED, aes(x=State, y=Deaths,fill='red')) +
 
 prescribers<-read.csv('./Data/prescriber-info.csv',stringsAsFactors = FALSE)
 
-head(prescribers,5)
-
 # change the shape of the
 
 rx_per_prescriber <- gather(prescribers, rx, countrx, ABILIFY:ZOLPIDEM.TARTRATE)
-head(rx_per_prescriber,5)
-
-# drugs identified as matching in Opioids prescription data and prescribers information data.
-
-matches <- c("ACETAMINOPHEN.CODEINE", "FENTANYL", "HYDROMORPHONE.HCL", 'HYDROCODONE.ACETAMINOPHEN',"METHADONE.HCL", "MORPHINE.SULFATE", "MORPHINE.SULFATE.ER", "OXYCODONE.HCL", "OXYCODONE.ACETAMINOPHEN",
-             "OXYCONTIN", "TRAMADOL.HCL")
 
 # create logical variable determines if RX by the NPIs are Opioids or not
 opioids_prescribed <- rx_per_prescriber$rx %in% matches
@@ -531,15 +364,11 @@ opioids_prescribed <- rx_per_prescriber$rx %in% matches
 # filter only NPI records where the prescribed drugs were opioids
 
 rx_opioids <- rx_per_prescriber[opioids_prescribed == TRUE,]
-
 head(rx_opioids)
 # keep only qualified prescribers and countrx column not missing
 
 rx_opioids<- filter(rx_opioids,Opioid.Prescriber==1,!(is.na(countrx)))
-
 head(rx_opioids)
-
-
 
 # question # 2 test pareto effect (20% of top prescribers are prescribing 80% of prescriptions)
 
@@ -553,11 +382,7 @@ tot_prescription<-sum(rx_opioids$countrx,na.rm = TRUE)
 print(tot_prescription)
 # calculate opioids precentage per drug per NPI 
 rx_opioids$pctPrescribed<- (rx_opioids$countrx/tot_prescription)*100
-
-
 head(rx_opioids)
-
-
 
 # take only NPI, countrx and pctPrescribed columns
 
@@ -631,13 +456,9 @@ third_20_pct<-nrow(opioids_per_NPI[opioids_per_NPI$cummulativePct>=40 & opioids_
 fourth_20_pct<-nrow(opioids_per_NPI[opioids_per_NPI$cummulativePct>=60 & opioids_per_NPI$cummulativePct<80,])
 fifth_20_pct<-nrow(opioids_per_NPI[opioids_per_NPI$cummulativePct>=80,])
 
-
-
-
 # rename columns as range
 
 pareto_df_1<-data.frame(first_20_pct,second_20_pct,third_20_pct,fourth_20_pct,fifth_20_pct)
-
 head(pareto_df_1)
 # renaming the columns here help to plot the ranges in order from first 20% to fifth 20% of prescribers.
 
