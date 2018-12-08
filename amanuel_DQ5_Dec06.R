@@ -165,7 +165,6 @@ opioids_per_NPI<-opioids_per_NPI%>%
 group_by(NPI)%>%
 summarise(countrx=sum(countrx),pctPrescribed=sum(pctPrescribed))
 # sort by descending order by percentage of opioids prescribed per NPI
-#prescription_per_NPI<-prescription_per_NPI[order(prescription_per_NPI$pctPrescribed,decreasing=TRUE),]
 # create cummulative sum of percentages prescribed by prescribers
 
 opioids_per_NPI<-opioids_per_NPI[order(opioids_per_NPI$pctPrescribed,decreasing = TRUE),]
@@ -320,11 +319,6 @@ ggplot(
  guides(fill=FALSE,color=FALSE) +
   ggtitle('Distribution of Opioids Prescriptions')
   
-  
-# rename columns
-head(prescription_per_NPI)
-colnames(prescription_per_NPI)<-c('countRxPerNPI','cumulativePct')
-
 # plot cummulative  distribution
 
 head(opioids_per_NPI)
