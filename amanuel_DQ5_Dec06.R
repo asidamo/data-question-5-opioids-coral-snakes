@@ -109,7 +109,8 @@ summarize(HYDROCODONE.ACETAMINOPHEN=sum(HYDROCODONE.ACETAMINOPHEN),
           OXYCODONE.HCL=sum(OXYCODONE.HCL),
           OXYCODONE.ACETAMINOPHEN=sum(OXYCODONE.ACETAMINOPHEN))
 
-  # question # 2 test pareto effect (20% of top prescribers are prescribing 80% of prescriptions)
+
+ # question # 2 test pareto effect (20% of top prescribers are prescribing 80% of prescriptions)
 
 # let's sort rx_opiodis dataset by countrx (count of presscriptions)
 rx_opioids<-rx_opioids[order(rx_opioids$countrx,decreasing=TRUE),]
@@ -139,8 +140,8 @@ ggplot(rx_opioids_per_state, aes(x=reorder(rx_opioids_per_state$state,rx_opioids
   geom_point(aes(y=rx_opioids_per_state$cumulativePct), color = rgb(0, 1, 0), pch=16, size=1) +
   geom_path(aes(y=rx_opioids_per_state$cumulativePct, group=1), colour="slateblue1", lty=3, size=0.9) + 
   theme(axis.text.x = element_text(angle=90, vjust=0.6)) + 
-  labs(title = "Pareto Effect", x = 'states', y = 'pctPrescribed')
- theme(plot.title = element_text(hjust = 0.5))
+  labs(title = "Percentage Share of Opioids Prescriptions \n By States", x = 'states', y = 'pctPrescribed')
+  theme(plot.title = element_text(hjust = 0.5))
 
 
 
@@ -193,13 +194,16 @@ print(opioids_per_rx)
 
 opioids_per_rx$cumulativePct<-cumsum(opioids_per_rx$pctPrescribed)
 
+opioids_per_rx<-opioids_per_rx%>%
+  mutate(rx=tolower(rx))
+
 ggplot(opioids_per_rx, aes(x=reorder(opioids_per_rx$rx,-opioids_per_rx$pctPrescribed))) +
-  geom_bar(aes(y=opioids_per_rx$pctPrescribed), fill='blue', stat="identity") +
+  geom_bar(aes(y=opioids_per_rx$pctPrescribed), fill='#0072B2', stat="identity") +
   geom_point(aes(y=opioids_per_rx$cumulativePct), color = rgb(0, 1, 0), pch=16, size=1) +
   geom_path(aes(y=opioids_per_rx$cumulativePct, group=1), colour="slateblue1", lty=3, size=0.9) + 
-  theme(axis.text.x = element_text(angle=90, vjust=0.6)) + 
-  labs(title = "Pareto Effect", x = 'opioidsPrescribed', y = 'pctPrescribed')
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(axis.text.x = element_text(angle=90,face='bold',size=12, vjust=0.6)) + 
+  labs(title = "Percentage Share Per Opioids Prescribed", x = 'opioidsPrescribed', y = 'pctPrescribed')
+  theme(plot.title = element_text(face='bold',hjust = 0.5))
 
 
 # select 80% of prescriptions
@@ -455,6 +459,7 @@ overdose_df<-overdose_df%>%
 
 head(overdose_df)
 
+
 # merge overdose data with opioids rx
 merged_df1<- overdose_df %>%
   left_join(prescription_by_state,by='state')
@@ -524,56 +529,73 @@ colnames(modelVariables)<-c('deaths','countrx','medianAge','unemp','uninsured','
 # race variables have opposite sign in the regression compared with correlation coefficient.
 round(cor(modelVariables),2)
 
-# linear model to estimate the overdose deaths
+# only countrx as dependent 
+lm_countrx<-lm(formula=deaths~countrx,data=merged_df7)
+
+
+glance(lm_countrx)
+
+coeff_lm_countrx<-tidy(lm_countrx)
+write.csv(coeff_lm_countrx,'coeff_lm_countrx.csv',row.names = FALSE)
+glance_lm_countrx<-round(glance(lm_countrx),3)
+write.csv(glance_lm_countrx,'glance_lm_countrx.csv',row.names = FALSE)
+
+augumented_lm_countrx<-augment(lm_countrx)
+
+augumented_lm_countrx%>%
+  ggplot(aes(x=countrx))+
+  geom_point(aes(y=deaths))+
+  geom_line(aes(y=.fitted,color='red')) + 
+  guides(fill=FALSE,color=FALSE) + 
+  ggtitle("relationship between overdose deaths\n  and countrx by states")
+theme(plot.title = element_text(hjust = 0.5))
+
+
+# linear model with all possible variables we have to estimate the overdose deaths
 linearModel <-lm(formula = deaths~countrx + medianAge + unemployment + 
                    uninsuredPct2014+perCapitaHealthExp+ +uninsuredPct2014+Income+Education +wa + ba, data =merged_df7 )
-
-# linear model by removing three weakly correlated variables
-
-linearModel1 <-lm(formula = deaths~countrx + Education + unemployment + 
-                   uninsuredPct2014 + +uninsuredPct2014 + wa + ba, data =merged_df7 )
-tidy(linearModel1)
-glance(linearModel1)
-# model without race variables and  with No Education
-linearModel3 <-lm(formula = deaths~countrx + medianAge + unemployment + 
-                     uninsuredPct2014+perCapitaHealthExp+ +uninsuredPct2014+Income, data =merged_df7 )
-tidy(linearModel3)
-glance(linearModel3)
-
-# model with only six variables with unemployment rate
-linearModel4 <-lm(formula = deaths~countrx + medianAge + unemployment + 
-                    uninsuredPct2014, data =merged_df7 )
-tidy(linearModel4)
-glance(linearModel4)
-
-# model with only six variables with education 
-linearModel5 <-lm(formula = deaths~countrx + medianAge + Education + 
-                    uninsuredPct2014, data =merged_df7 )
-tidy(linearModel5)
-glance(linearModel5)
-
-
-# model with fewer variables
-
-linearMode2 <-lm(formula = deaths~countrx + unemployment + 
-                   uninsuredPct2014+perCapitaHealthExp+ +uninsuredPct2014+Education++wa+ba, data =merged_df7 )
-
-# check fitness of the model
-tidy(linearMode2)
-round(glance(linearMode2),3)
 
 # check the coefficients and fitness of the model
 tidy(linearModel)
 glance(linearModel)
-
+coeff_lm<-tidy(linearModel)
 glance<-glance(linearModel)
 augmented_df<-augment(linearModel)
 
+write.csv(coeff_lm,'coeff_lm.csv',row.names = FALSE)
+write.csv(glance,'glance_lm.csv',row.names = FALSE)
 # plot the model 
 plot(linearModel)
 
 
+# only countrx, percentage of unisured population and white
 
+lm_countrx_unins_wa<-lm(formula = deaths~countrx+uninsuredPct2014+wa,data=merged_df7)
+tidy(lm_countrx_unins)
+glance(lm_countrx_unins)
+
+# only countrx, percentage of unisured population and black
+
+lm_countrx_unins_ba<-lm(formula = deaths~countrx+uninsuredPct2014+ba,data=merged_df7)
+tidy(lm_countrx_unins_ba)
+glance(lm_countrx_unins_ba)
+
+# linear model by removing three weakly correlated variables
+
+lm_corr_vars <-lm(formula = deaths~countrx + Education + unemployment + 
+                    uninsuredPct2014 + wa + ba, data =merged_df7 )
+tidy(lm_corr_vars)
+glance(lm_corr_vars)
+
+# plots based on Multivariate linear model that includes all variables
+
+augmented_df%>%
+  ggplot(aes(x=countrx))+
+  geom_point(aes(y=deaths))+
+  geom_line(aes(y=.fitted,color='red')) + 
+  guides(fill=FALSE,color=FALSE) + 
+  ggtitle("relationship between overdose deaths\n  and countrx by states")
+theme(plot.title = element_text(hjust = 0.5))
 
 
 augmented_df%>%
@@ -581,8 +603,8 @@ augmented_df%>%
   geom_point(aes(y=deaths))+
   geom_line(aes(y=.fitted,color='red')) + 
   guides(fill=FALSE,color=FALSE) + 
-  ggtitle("relationship between overdose deaths\n  and median_age by states")
-theme(plot.title = element_text(hjust = 0.5))
+  ggtitle("relationship between overdose deaths\n  and median age by states")
+  theme(plot.title = element_text(hjust = 0.5))
 
 
 augmented_df%>%
@@ -614,10 +636,15 @@ augmented_df%>%
   geom_point(aes(y=deaths))+
   geom_line(aes(y=.fitted,color='red')) + 
   guides(fill=FALSE,color=FALSE) + ggtitle("overdose deaths and percentage of \n Highschool and above by states")
-theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5))
 
 augmented_df%>%
   ggplot(aes(x=Income))+
   geom_point(aes(y=deaths))+ 
     geom_line(aes(y=.fitted,color='red')) + 
     guides(fill=FALSE,color=FALSE) + ggtitle("overdose deaths and median household income by states")
+
+
+
+
+
